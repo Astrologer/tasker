@@ -1,10 +1,10 @@
 import cats.effect.{ConcurrentEffect, ExitCode, IO, IOApp}
-import tasker.{Job, JobExecutionContext, JobRunnerBase, Task}
+import tasker.{Job, JobExecutionContext, JobRunnerBase, SumIntCable, Task}
 
 class Tasks[F[_]: ConcurrentEffect] {
-  val t1: Task[Int, Int, F] = Task.sync((x: Int) => x - 3)
-  val t2: Task[Int, Int, F] = Task.sync((x: Int) => x + 2)
-  val t3: Task[Int, Int, F] = Task.sync((x: Int) => x * x)
+  val t1: Task[Int, Int, F] = Task.sync((x: Int) => x - 3, "sum")
+  val t2: Task[Int, Int, F] = Task.sync((x: Int) => x + 2, "add")
+  val t3: Task[Int, Int, F] = Task.sync((x: Int) => x * x, "mul")
 }
 
 object main extends IOApp {
@@ -13,9 +13,10 @@ object main extends IOApp {
   import tasks._
 
   def run(args: List[String]): IO[ExitCode] = {
-    val job = Job(t3, t1, JobRunnerBase)
+    val job = Job(t3, t1, JobRunnerBase, resultCable = SumIntCable)
+      .dep(t3, t2)
+      .dep(t2, t1)
       .dep(t3, t1)
-      .dep(t1, t2)
 
     for {
       rJob <- job.launch(7)
